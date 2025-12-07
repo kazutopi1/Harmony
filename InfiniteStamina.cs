@@ -2,9 +2,9 @@ using StardewValley;
 using StardewModdingAPI;
 using HarmonyLib;
 
-namespace EscapeFast
+namespace InfStam
 {
-    public class JustRun : Mod
+    public class StamInf : Mod
     {
         public override void Entry(IModHelper helper)
         {
@@ -12,14 +12,12 @@ namespace EscapeFast
 
             harmony.Patch(
                 original: AccessTools.Method(typeof(Farmer), nameof(Farmer.useTool)),
-                postfix: new HarmonyMethod(typeof(JustRun), nameof(JustRun.Postfix))
+                postfix: new HarmonyMethod(typeof(StamInf), nameof(StamInf.Postfix))
             );
         }
         private static void Postfix(Farmer who)
         {
-            int maxStamina = who.MaxStamina;
-
-            Game1.player.stamina = maxStamina;
+            who.stamina = who.MaxStamina;
         }
     }
 }
