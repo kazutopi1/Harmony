@@ -1,6 +1,7 @@
 using StardewValley;
 using StardewValley.Tools;
 using StardewModdingAPI;
+using StardewModdingAPI.Events;
 using HarmonyLib;
 using StardewValley.Buffs;
 using Microsoft.Xna.Framework.Graphics;
@@ -9,6 +10,8 @@ namespace Reta
 {
     public class Liate : Mod
     {
+        private static Buff Retaliate;
+
         private const double playerIFrames = 1200.0;
 
         private static double lastDamaged = -1.0;
@@ -19,6 +22,8 @@ namespace Reta
 
         public override void Entry(IModHelper helper)
         {
+            helper.Events.GameLoop.GameLaunched += SetupBuff;
+
             var harmony = new Harmony(this.ModManifest.UniqueID);
 
             harmony.Patch(
@@ -30,9 +35,9 @@ namespace Reta
                 postfix: new HarmonyMethod(typeof(Liate), nameof(Liate.Postfix2))
             );
         }
-        private static Buff Retaliate()
+        private void SetupBuff(object sender, GameLaunchedEventArgs e)
         {
-            Buff Retaliate = new Buff(
+            Retaliate = new Buff(
                 id: "df.retaliate",
                 displayName: "Retaliate",
                 iconTexture: Game1.content.Load<Texture2D>("TileSheets/BuffsIcons"),
@@ -41,10 +46,9 @@ namespace Reta
                 effects: new BuffEffects()
                 {
                     Attack = { 50 },
-                    WeaponSpeedMultiplier = { 10 }
+                    CriticalChanceMultiplier = { 100000 }
                 }
             );
-            return Retaliate;
         }
         private static void Postfix()
         {
@@ -59,14 +63,22 @@ namespace Reta
                 if (damageTaken >= Threshold
                     && !Game1.player.hasBuff("df.retaliate"))
                 {
-                    Game1.player.applyBuff(Retaliate());
+                    Game1.player.applyBuff(Retaliate);
                     damageTaken = 0;
                 }
             }
         }
         private static void Postfix2()
         {
-            Game1.player.buffs.Remove("df.retaliate");
+            DelayedAction.functionAfterDelay(() =>
+            {
+                var f = Game1.player;
+
+                if (f.hasBuff("df.retaliate"))
+                {
+                    f.buffs.Remove("df.retaliate");
+                }
+            }, 500);
         }
     }
 }
