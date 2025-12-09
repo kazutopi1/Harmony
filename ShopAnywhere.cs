@@ -3,6 +3,7 @@ using StardewValley.Menus;
 using StardewValley.Mobile;
 using StardewModdingAPI;
 using HarmonyLib;
+using Microsoft.Xna.Framework;
 using System;
 
 namespace BlahBlah
@@ -15,6 +16,9 @@ namespace BlahBlah
 
         private static bool wasBTapped = false;
 
+        private static string lastLocationName;
+        private static Vector2 lastTilePos;
+
         public override void Entry(IModHelper helper)
         {
             var harmony = new Harmony(this.ModManifest.UniqueID);
@@ -22,6 +26,10 @@ namespace BlahBlah
             harmony.Patch(
                 original: AccessTools.PropertyGetter(typeof(VirtualJoypad), nameof(VirtualJoypad.ButtonBPressed)),
                 postfix: new HarmonyMethod(typeof(Shop), nameof(Shop.Postfix))
+            );
+            harmony.Patch(
+                original: AccessTools.Method(typeof(CarpenterMenu), nameof(CarpenterMenu.returnToCarpentryMenu)),
+                postfix: new HarmonyMethod(typeof(Shop), nameof(Shop.Postfix2))
             );
         }
         private static void Postfix(ref bool __result)
@@ -82,6 +90,22 @@ namespace BlahBlah
                 }
             }
             wasBTapped = __result;
+        }
+        private static void Postfix2()
+        {
+            DelayedAction.functionAfterDelay(() =>
+            {
+                Game1.warpFarmer(
+                    lastLocationName,
+                    (int)lastTilePos.X,
+                    (int)lastTilePos.Y,
+                    Game1.player.FacingDirection,
+                    doFade: false
+                );
+                Game1.player.forceCanMove();
+                Game1.exitActiveMenu();
+
+            }, 50);
         }
         private static void category1()
         {
@@ -216,6 +240,9 @@ namespace BlahBlah
                 {
                     DelayedAction.functionAfterDelay(() =>
                     {
+                        lastLocationName = Game1.currentLocation.Name;
+                        lastTilePos = Game1.player.Tile;
+
                         Game1.activeClickableMenu = new StardewValley.Menus.CarpenterMenu("Robin");
                     }, 34);
                 }
