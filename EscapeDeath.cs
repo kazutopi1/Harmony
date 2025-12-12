@@ -11,6 +11,7 @@ namespace LastWhisper
     public class EscapeDeath : Mod
     {
         private static Texture2D BuffTextures;
+        private static Item ReaperScroll;
 
         public override void Entry(IModHelper helper)
         {
@@ -22,10 +23,25 @@ namespace LastWhisper
                 original: AccessTools.Method(typeof(Farmer), nameof(Farmer.Update)),
                 prefix: new HarmonyMethod(typeof(EscapeDeath), nameof(EscapeDeath.Prefix))
             );
+            System.Type[] prefix2Params = new System.Type[]
+            {
+                typeof(Item),
+                typeof(int),
+                typeof(bool)
+            };
+            harmony.Patch(
+                original: AccessTools.Method(
+                    typeof(Farmer),
+                    nameof(Farmer.holdUpItemThenMessage),
+                    prefix2Params
+                ),
+                prefix: new HarmonyMethod(typeof(EscapeDeath), nameof(EscapeDeath.Prefix2))
+            );
         }
         private void BuffTexture(object sender, GameLaunchedEventArgs e)
         {
             BuffTextures = Game1.content.Load<Texture2D>("TileSheets/BuffsIcons");
+            ReaperScroll = ItemRegistry.Create("(O)KT_ReaperScroll");
         }
         private static Buff Defense()
         {
@@ -61,15 +77,24 @@ namespace LastWhisper
         {
             if (__instance.health <= 0 && !Game1.killScreen && Game1.timeOfDay < 2600)
             {
-                if (__instance.hasItemInInventoryNamed("LastWhisper"))
+                if (__instance.hasItemInInventoryNamed("ReaperScroll"))
                 {
                     __instance.health = 50;
                     __instance.applyBuff(Defense());
                     __instance.applyBuff(Speed());
-                    __instance.removeFirstOfThisItemFromInventory("(O)KT_LastWhisper", 1);
+                    __instance.holdUpItemThenMessage(ReaperScroll, false);
+                    __instance.removeFirstOfThisItemFromInventory("(O)KT_ReaperScroll", 1);
                     Game1.playSound("healSound");
                     return false;
                 }
+            }
+            return true;
+        }
+        public static bool Prefix2(Farmer __instance)
+        {
+            if (__instance.hasItemInInventoryNamed("ReaperScroll"))
+            {
+                __instance.freezePause = 2000;
             }
             return true;
         }
